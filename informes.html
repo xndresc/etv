@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informes ETV — DDRISS Chiquimula</title>
+<style>
+  :root{
+    --tinta:#1c1c1c;
+    --papel:#ffffff;
+    --mesa:#e8e9eb;
+    --linea:#c9ccd1;
+    --acento:#14532d;
+    --apagado:#5b6169;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--mesa);
+    font-family:"Segoe UI",Roboto,-apple-system,system-ui,sans-serif;
+    color:var(--tinta);
+  }
+
+  /* ---------- Barra de control (no se imprime) ---------- */
+  .panel{
+    position:sticky; top:0; z-index:10;
+    background:var(--papel);
+    border-bottom:1px solid var(--linea);
+    padding:.75rem 1rem;
+  }
+  .panel-fila{
+    max-width:60rem; margin:0 auto;
+    display:flex; flex-wrap:wrap; gap:.75rem; align-items:flex-end;
+  }
+  .campo{display:flex; flex-direction:column; gap:.25rem}
+  .campo label{font-size:.75rem; color:var(--apagado)}
+  select,input[type=number]{
+    font:inherit; font-size:1rem;
+    padding:.5rem .6rem;
+    border:1px solid var(--linea); border-radius:6px;
+    background:var(--papel); color:var(--tinta);
+    min-height:44px;
+  }
+  select:focus-visible,input:focus-visible,button:focus-visible,
+  [contenteditable]:focus-visible{
+    outline:2px solid var(--acento); outline-offset:2px;
+  }
+  .fecha-viva{
+    font-size:.85rem; color:var(--apagado);
+    align-self:center; padding-bottom:.6rem;
+  }
+  .fecha-viva b{color:var(--tinta); font-weight:600}
+  .acciones{margin-left:auto; display:flex; gap:.5rem; align-items:flex-end}
+  button{
+    font:inherit; font-size:1rem; min-height:44px;
+    padding:.5rem 1rem; border-radius:6px; cursor:pointer;
+    border:1px solid var(--acento);
+    background:var(--acento); color:#fff;
+  }
+  button.secundario{background:var(--papel); color:var(--acento)}
+  .nota{
+    max-width:60rem; margin:.5rem auto 0;
+    font-size:.8rem; color:var(--apagado); line-height:1.5;
+  }
+
+  /* ---------- Hoja ---------- */
+  .hoja{
+    width:8.5in; min-height:14in;
+    padding:1in;
+    margin:1.25rem auto;
+    background:var(--papel);
+    box-shadow:0 1px 4px rgba(0,0,0,.18);
+    font-family:Calibri,Carlito,"Segoe UI",Roboto,sans-serif;
+    font-size:11pt; line-height:1.31;
+    color:#000;
+  }
+  .membrete{font-weight:700}
+  .fecha{text-align:right; font-weight:700; margin-top:2.6em}
+  .dirigido{font-weight:700}
+  .cuerpo{text-align:justify; text-indent:.5in; margin:2.6em 0 0}
+  .titulo{text-align:center; font-weight:700; text-decoration:underline; margin:1.1em 0}
+  ol{margin:0; padding-left:.42in}
+  ol li{
+    text-align:justify; font-weight:700; font-style:italic;
+    margin-bottom:.55em;
+  }
+  .cierre{text-align:justify; text-indent:.5in; margin:1em 0 0}
+  .suscribo{text-indent:.5in; margin:.9em 0 0}
+  .atentamente{text-align:center; margin:.9em 0 0}
+  .firmas{
+    display:flex; margin-top:5.8em; page-break-inside:avoid; break-inside:avoid;
+  }
+  .firmas div{flex:1; text-align:center; line-height:1.35}
+  .vobo{font-weight:700}
+
+  /* campos rellenables */
+  [contenteditable]{
+    background:#fff6cc; border-radius:2px;
+    padding:0 2px; outline:none;
+  }
+  [contenteditable]:empty::before{
+    content:attr(data-vacio); color:#9aa0a6;
+  }
+  .var{background:#e3f0e8; border-radius:2px; padding:0 2px}
+
+  /* ---------- Pantalla angosta ---------- */
+  @media screen and (max-width:9in){
+    .hoja{width:100%; padding:.6in; font-size:10.5pt}
+    .acciones{margin-left:0; width:100%}
+    .acciones button{flex:1}
+  }
+
+  /* ---------- Impresión (debe ir al final) ---------- */
+  @page{ size:8.5in 14in; margin:1in; }
+  @media print{
+    html,body{background:#fff; margin:0; padding:0}
+    .panel,.nota{display:none !important}
+    .hoja{
+      width:100% !important;
+      max-width:none !important;
+      min-height:0 !important;
+      padding:0 !important;
+      margin:0 !important;
+      box-shadow:none !important;
+      font-size:11pt !important;
+      break-after:page;
+      page-break-after:always;
+    }
+    .hoja:last-child{break-after:auto; page-break-after:auto}
+    [contenteditable],.var{background:transparent !important; padding:0 !important}
+    [contenteditable]:empty::before{content:"" !important}
+    ol li{break-inside:avoid; page-break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <div class="panel-fila">
+    <div class="campo">
+      <label for="mes">Mes del informe</label>
+      <select id="mes"></select>
+    </div>
+    <div class="campo">
+      <label for="anio">Año</label>
+      <input type="number" id="anio" min="2000" max="2100" step="1" value="2026" style="width:6.5rem">
+    </div>
+    <p class="fecha-viva">Se fechará el <b id="vista">31 de agosto de 2026</b></p>
+    <div class="acciones">
+      <button type="button" class="secundario" id="agregar">Agregar persona</button>
+      <button type="button" id="imprimir">Imprimir o guardar PDF</button>
+    </div>
+  </div>
+  <p class="nota">
+    Los recuadros amarillos se editan tocándolos. El mes y el año se aplican a las
+    cuatro hojas y el último día del mes se calcula solo.
+  </p>
+</div>
+
+<main id="hojas"></main>
+
+<script>
+(function(){
+  "use strict";
+
+  var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
+               "agosto","septiembre","octubre","noviembre","diciembre"];
+
+  var PERSONAS = [
+    {nombre:"Juan Manuel Andrés Compá Cordón", registro:""},
+    {nombre:"Carlos Alberto Mejía Sagastume",  registro:""},
+    {nombre:"Roberto Carlos Roque Maldonado",  registro:""},
+    {nombre:"Wilson Iván Santos Aguirre",      registro:""}
+  ];
+
+  var ACTIVIDADES = [
+    "Llevé a cabo las medidas de control y manejo de insectos.",
+    "Realicé campañas de prevención en la comunidad sobre la importancia del control de vectores.",
+    "Realicé la divulgación anticipada de la visita que efectuara el auxiliar del fumigador, para que preparen la vivienda.",
+    "Acordar y comprometer a las familias en la participación para la erradicación de las enfermedades transmitidas por vectores.",
+    "Evitar aguas estancadas en las comunidades.",
+    "Mantuve los sistemas de información entre los trabajos de campo y el servicio de salud.",
+    "Organicé y orienté a las comunidades para que realicen acciones contra los diferentes vectores transmisores de enfermedades.",
+    "Realicé deschatarrización: eliminación física y química de criaderos en depósitos inservibles.",
+    "Realicé abatización: aplicación de larvicida en recipientes útiles y no útiles (piedras, chatarra, terrazas, entre otros).",
+    "Realicé nebulización para la eliminación del zancudo adulto transmisor del dengue, intra y peridomiciliar.",
+    "Realicé croquis y enumeración de viviendas."
+  ];
+
+  var MEMORIA = "informes_etv_v1";
+
+  function ultimoDia(mesIdx, anio){
+    return new Date(anio, mesIdx + 1, 0).getDate();
+  }
+
+  function editable(clase, texto, vacio){
+    return '<span contenteditable="true" class="' + clase +
+           '" data-vacio="' + vacio + '">' + texto + '</span>';
+  }
+
+  function hoja(p, i){
+    var li = ACTIVIDADES.map(function(a){ return "<li>" + a + "</li>"; }).join("");
+    li += "<li>El municipio trabajado con énfasis a lo anteriormente expuesto es " +
+          editable("municipio","San José La Arada","municipio") +
+          ", el período de trabajo fue realizado durante el mes de " +
+          '<span class="var mes-var">agosto</span> del presente año.</li>';
+
+    return '' +
+    '<section class="hoja">' +
+      '<p class="membrete">MINISTERIO DE SALUD PÚBLICA Y A.S.<br>' +
+      'DIRECCIÓN DEPARTAMENTAL DE REDES INTEGRADAS DE SERVICIOS DE SALUD DE CHIQUIMULA<br>' +
+      'DEPARTAMENTO DE ETV</p>' +
+
+      '<p class="fecha">Chiquimula, <span class="var dia-var">31</span> de ' +
+      '<span class="var mes-var">agosto</span> de <span class="var anio-var">2026</span>.</p>' +
+
+      '<p class="dirigido">' +
+        editable("dest-nombre","Dr. Irving Josué Lemus Cantoral","nombre") + '<br>' +
+        editable("dest-cargo","Director DDRISS. Chiquimula","cargo") +
+      '</p>' +
+
+      '<p class="cuerpo">Con un atento saludo me permito presentarle el informe de trabajo ' +
+      'correspondiente al mes de <span class="var mes-var">agosto</span> ' +
+      '<span class="var anio-var">2026</span> sobre las distintas actividades realizadas en ' +
+      'apoyo al Programa de Enfermedades Transmitidas por Vectores, en lo que al Programa de ' +
+      'Dengue se refiere. No está demás indicarle que las actividades que me fueron encomendadas ' +
+      'fueron estudiadas y autorizadas debidamente por el Coordinador de Vectores del Depto. de ' +
+      'Chiquimula.</p>' +
+
+      '<p class="titulo">Dichas actividades las detallo a continuación:</p>' +
+      '<ol>' + li + '</ol>' +
+
+      '<p class="cierre">Así mismo, se hace de su conocimiento que este trabajo obedece al apoyo ' +
+      'del Ministerio de Salud Pública y Asistencia Social para el control de las enfermedades ' +
+      'antes descritas.</p>' +
+
+      '<p class="suscribo">Esperando el poder informarle como se merece, me suscribo. -</p>' +
+      '<p class="atentamente">Atentamente.</p>' +
+
+      '<div class="firmas">' +
+        '<div>' +
+          editable("firma-nombre", p.nombre, "nombre") + '<br>' +
+          editable("firma-registro", p.registro, "registro") +
+        '</div>' +
+        '<div class="vobo">' +
+          editable("coord-nombre","Vo. Bo. P.C. Henry Geovany Díaz Ciramagua","nombre") + '<br>' +
+          editable("coord-cargo","Coordinador de ETV, Chiquimula.","cargo") +
+        '</div>' +
+      '</div>' +
+    '</section>';
+  }
+
+  var elMes  = document.getElementById("mes");
+  var elAnio = document.getElementById("anio");
+  var elVista= document.getElementById("vista");
+  var elHojas= document.getElementById("hojas");
+
+  MESES.forEach(function(m,i){
+    var o = document.createElement("option");
+    o.value = i; o.textContent = m.charAt(0).toUpperCase() + m.slice(1);
+    elMes.appendChild(o);
+  });
+
+  function pintar(){
+    elHojas.innerHTML = PERSONAS.map(hoja).join("");
+    sincronizar();
+    enlazarEdiciones();
+  }
+
+  function sincronizar(){
+    var i = parseInt(elMes.value,10);
+    var a = parseInt(elAnio.value,10);
+    if (isNaN(i)) i = new Date().getMonth();
+    if (isNaN(a) || a < 1000) a = new Date().getFullYear();
+    var d = ultimoDia(i,a);
+
+    function poner(sel,val){
+      var n = document.querySelectorAll(sel);
+      for (var k=0;k<n.length;k++) n[k].textContent = val;
+    }
+    poner(".mes-var",  MESES[i]);
+    poner(".anio-var", a);
+    poner(".dia-var",  d);
+
+    elVista.textContent = d + " de " + MESES[i] + " de " + a;
+    guardar();
+  }
+
+  function enlazarEdiciones(){
+    var campos = elHojas.querySelectorAll("[contenteditable]");
+    for (var k=0;k<campos.length;k++){
+      campos[k].addEventListener("blur", guardar);
+      campos[k].addEventListener("keydown", function(e){
+        if (e.key === "Enter"){ e.preventDefault(); this.blur(); }
+      });
+    }
+  }
+
+  function guardar(){
+    try{
+      var hojasDom = elHojas.querySelectorAll(".hoja");
+      var datos = {mes:elMes.value, anio:elAnio.value, personas:[], comunes:{}};
+      for (var k=0;k<hojasDom.length;k++){
+        datos.personas.push({
+          nombre:    hojasDom[k].querySelector(".firma-nombre").textContent,
+          registro:  hojasDom[k].querySelector(".firma-registro").textContent,
+          municipio: hojasDom[k].querySelector(".municipio").textContent
+        });
+      }
+      if (hojasDom.length){
+        datos.comunes = {
+          destNombre:  hojasDom[0].querySelector(".dest-nombre").textContent,
+          destCargo:   hojasDom[0].querySelector(".dest-cargo").textContent,
+          coordNombre: hojasDom[0].querySelector(".coord-nombre").textContent,
+          coordCargo:  hojasDom[0].querySelector(".coord-cargo").textContent
+        };
+      }
+      localStorage.setItem(MEMORIA, JSON.stringify(datos));
+    }catch(e){ /* sin almacenamiento disponible: se sigue igual */ }
+  }
+
+  function restaurar(){
+    try{
+      var crudo = localStorage.getItem(MEMORIA);
+      if (!crudo) return false;
+      var d = JSON.parse(crudo);
+      if (d.personas && d.personas.length){
+        PERSONAS = d.personas.map(function(p){
+          return {nombre:p.nombre, registro:p.registro, municipio:p.municipio};
+        });
+      }
+      if (d.mes  !== undefined) elMes.value  = d.mes;
+      if (d.anio !== undefined) elAnio.value = d.anio;
+      window.__comunes = d.comunes || null;
+      window.__municipios = (d.personas||[]).map(function(p){return p.municipio;});
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function aplicarGuardados(){
+    var c = window.__comunes;
+    var muni = window.__municipios || [];
+    var hojasDom = elHojas.querySelectorAll(".hoja");
+    for (var k=0;k<hojasDom.length;k++){
+      if (c){
+        hojasDom[k].querySelector(".dest-nombre").textContent  = c.destNombre;
+        hojasDom[k].querySelector(".dest-cargo").textContent   = c.destCargo;
+        hojasDom[k].querySelector(".coord-nombre").textContent = c.coordNombre;
+        hojasDom[k].querySelector(".coord-cargo").textContent  = c.coordCargo;
+      }
+      if (muni[k]) hojasDom[k].querySelector(".municipio").textContent = muni[k];
+    }
+  }
+
+  document.getElementById("agregar").addEventListener("click", function(){
+    PERSONAS.push({nombre:"", registro:""});
+    var c = window.__comunes;
+    pintar();
+    if (c) aplicarGuardados();
+    var ultimas = elHojas.querySelectorAll(".hoja");
+    var u = ultimas[ultimas.length-1];
+    u.scrollIntoView({behavior:"smooth", block:"start"});
+    u.querySelector(".firma-nombre").focus();
+  });
+
+  document.getElementById("imprimir").addEventListener("click", function(){
+    window.print();
+  });
+
+  elMes.addEventListener("change", sincronizar);
+  elAnio.addEventListener("input", sincronizar);
+
+  // Arranque
+  var habia = restaurar();
+  if (!habia){
+    var hoy = new Date();
+    elMes.value  = hoy.getMonth();
+    elAnio.value = hoy.getFullYear();
+  }
+  pintar();
+  if (habia) aplicarGuardados();
+})();
+</script>
+</body>
+</html>
