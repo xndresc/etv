@@ -60,7 +60,7 @@
           font-size:16pt; line-height:1.4; padding-top:.1in}
 
   table{width:100%; border-collapse:collapse; margin-top:.12in;
-        table-layout:fixed; font-size:10.5pt}
+        table-layout:fixed; font-size:var(--ft,10.5pt)}
   th,td{border:1px solid var(--marco); vertical-align:top; padding:3pt 5pt}
   th{text-align:center; font-weight:700; padding:2pt 5pt}
   col.semana{width:5.2%}
@@ -87,6 +87,16 @@
     table{font-size:9pt}
   }
 
+  /* ---------- Medición fuera de pantalla ---------- */
+  .medir{position:absolute; left:-20000px; top:0; width:13in; visibility:hidden}
+  .medir .hoja{width:13in !important; padding:0 !important; margin:0 !important;
+    min-height:0 !important; box-shadow:none !important}
+  .medir .rotulo{font-size:16pt !important}
+  .medir .cabecera img{width:2.84in !important; height:1.10in !important}
+  .medir table{font-size:var(--ft,10.5pt) !important}
+  .medir .firmas{margin-top:var(--gap,.95in) !important}
+  .medir .aviso{margin-top:var(--aviso,.3in) !important}
+
   /* ---------- Impresión (al final) ---------- */
   @page{ size:14in 8.5in; margin:.5in; }
   @media print{
@@ -101,7 +111,9 @@
     .hoja:last-child{break-after:auto; page-break-after:auto}
     .rotulo{font-size:16pt !important}
     .cabecera img{width:2.84in !important; height:1.10in !important}
-    table{font-size:10.5pt !important}
+    table{font-size:var(--ft,10.5pt) !important}
+    .firmas{margin-top:var(--gap,.95in) !important}
+    .aviso{margin-top:var(--aviso,.3in) !important}
     tr{break-inside:avoid; page-break-inside:avoid}
     [contenteditable],.auto{background:transparent !important; padding:0 !important}
     [contenteditable]:empty::before{content:"" !important}
@@ -130,7 +142,8 @@
       <input type="text" id="municipio" value="San José La Arada">
     </div>
     <div class="acciones">
-      <button type="button" id="imprimir">Imprimir o guardar PDF</button>
+      <button type="button" id="descargarPdf">Descargar PDF</button>
+      <button type="button" class="secundario" id="imprimir">Imprimir</button>
     </div>
   </div>
 
@@ -290,6 +303,7 @@
     var alto = Math.max(0.52, 3.95 / sem.length);
     elHojas.style.setProperty('--altofila', alto.toFixed(3) + 'in');
     enlazarHojas(sem.length);
+    encajar();
   }
 
   function enlazarHojas(nSemanas){
@@ -297,6 +311,7 @@
       n.addEventListener("blur", function(){
         var k = this.dataset.p+"|"+this.dataset.s+"|"+this.dataset.d;
         estado.manual[k] = this.textContent.trim();
+        encajar();
         guardar();
       });
     });
@@ -419,6 +434,38 @@
     });
   }
 
+  /* --- Que cada hoja quepa en una página oficio horizontal --- */
+  var ALTO_UTIL = 7.4 * 96;   // 8.5in menos márgenes, con un poco de holgura
+  var PASOS = [];
+  var FIRMA = .8;             // espacio mínimo para firmar, en pulgadas
+  // Orden: 1) espacio entre firmas y aviso, 2) espacio para firmar (hasta FIRMA), 3) letra
+  [.3,.2,.1].forEach(function(av){ PASOS.push([10.5,.95,av]); });
+  [.875,FIRMA].forEach(function(gp){ PASOS.push([10.5,gp,.1]); });
+  for (var ft=10; ft>=7; ft-=.5) PASOS.push([ft,FIRMA,.1]);
+
+  function encajar(){
+    var caja = document.createElement("div");
+    caja.className = "medir";
+    caja.style.setProperty("--altofila", elHojas.style.getPropertyValue("--altofila"));
+    document.body.appendChild(caja);
+    elHojas.querySelectorAll(".hoja").forEach(function(h){
+      var c = h.cloneNode(true);
+      caja.innerHTML = ""; caja.appendChild(c);
+      var paso = PASOS[PASOS.length-1];
+      for (var i=0;i<PASOS.length;i++){
+        c.style.setProperty("--ft", PASOS[i][0]+"pt");
+        c.style.setProperty("--gap", PASOS[i][1]+"in");
+        c.style.setProperty("--aviso", PASOS[i][2]+"in");
+        if (c.offsetHeight <= ALTO_UTIL){ paso = PASOS[i]; break; }
+      }
+      h.style.setProperty("--ft", paso[0]+"pt");
+      h.style.setProperty("--gap", paso[1]+"in");
+      h.style.setProperty("--aviso", paso[2]+"in");
+    });
+    caja.remove();
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ encajar(); });
+
   /* --- Persistencia --- */
   function guardar(){
     try{ localStorage.setItem(MEMORIA, JSON.stringify(estado)); }catch(e){}
@@ -489,6 +536,131 @@
 
   pintarHojas();
   pintarPersonas();
+})();
+</script>
+<style>
+  [hidden]{display:none !important}
+  /* ---------- Exportación a PDF (sin encabezados de Safari) ---------- */
+  body.exportando .hoja{
+    width:13in !important; max-width:none !important; min-height:0 !important;
+    padding:0 !important; margin:0 !important; box-shadow:none !important;
+    font-size:10.5pt !important;
+  }
+  body.exportando .rotulo{font-size:16pt !important}
+  body.exportando .cabecera img{width:2.84in !important; height:1.10in !important}
+  body.exportando table{font-size:var(--ft,10.5pt) !important}
+  body.exportando .firmas{margin-top:var(--gap,.95in) !important}
+  body.exportando .aviso{margin-top:var(--aviso,.3in) !important}
+  body.exportando [contenteditable],body.exportando .var,body.exportando .auto{
+    background:transparent !important; padding:0 !important}
+  body.exportando [contenteditable]:empty::before{content:"" !important}
+  .pdf-capa{position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.45);
+    display:flex; align-items:center; justify-content:center; padding:16px}
+  .pdf-caja{background:#fff; color:#1c1c1c; border-radius:10px; padding:1.25rem;
+    width:100%; max-width:22rem; display:grid; gap:.75rem; text-align:center}
+  .pdf-caja p{margin:0; line-height:1.4}
+  .pdf-caja a{display:block; min-height:44px; line-height:44px; border-radius:6px;
+    border:1px solid #14532d; color:#14532d; text-decoration:none; font-size:1rem}
+  .pdf-caja .error{color:#9b1c1c}
+</style>
+<div class="pdf-capa" id="pdfCapa" hidden>
+  <div class="pdf-caja">
+    <p id="pdfMsg">Preparando el PDF…</p>
+    <button type="button" id="pdfCompartir" hidden>Guardar o compartir PDF</button>
+    <a id="pdfVer" href="#" target="_blank" rel="noopener" hidden>Ver PDF</a>
+    <button type="button" class="secundario" id="pdfCerrar" hidden>Cerrar</button>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var CONF = {orientacion:"landscape", margen:0.5, escala:2.5, nombre:function(){var m=document.getElementById("mes");return "Planificacion_ETV_"+m.options[m.selectedIndex].text+"_"+document.getElementById("anio").value;}};
+  var LIBS = [
+    ["html2canvas", ["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+                     "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"]],
+    ["jspdf",       ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+                     "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"]]
+  ];
+  var capa=document.getElementById("pdfCapa"), msg=document.getElementById("pdfMsg"),
+      bComp=document.getElementById("pdfCompartir"), aVer=document.getElementById("pdfVer"),
+      bCerrar=document.getElementById("pdfCerrar");
+  var archivo=null, urlBlob=null;
+
+  function cargar(urls){
+    return new Promise(function(ok, mal){
+      var i=0;
+      (function intento(){
+        if (i>=urls.length) return mal(new Error("sin conexión"));
+        var s=document.createElement("script"); s.src=urls[i++];
+        s.onload=ok; s.onerror=function(){ s.remove(); intento(); };
+        document.head.appendChild(s);
+      })();
+    });
+  }
+  function librerias(){
+    return LIBS.reduce(function(p,l){
+      return p.then(function(){ return window[l[0]] ? null : cargar(l[1]); });
+    }, Promise.resolve());
+  }
+
+  function mostrar(t, listo, error){
+    capa.hidden=false; msg.textContent=t; msg.className=error?"error":"";
+    bComp.hidden=!listo; aVer.hidden=!listo; bCerrar.hidden=!(listo||error);
+  }
+
+  function generar(){
+    var btn=this; btn.disabled=true;
+    if (document.activeElement) document.activeElement.blur();
+    mostrar("Preparando el PDF…");
+    var hojas=[].slice.call(document.querySelectorAll(".hoja"));
+    var vacios=[].slice.call(document.querySelectorAll("[data-vacio]")).map(function(n){
+      var v=n.getAttribute("data-vacio"); n.removeAttribute("data-vacio"); return [n,v]; });
+    librerias().then(function(){
+      return document.fonts ? document.fonts.ready : null;
+    }).then(function(){
+      var jsPDF=window.jspdf.jsPDF;
+      var pdf=new jsPDF({unit:"in", format:[8.5,14], orientation:CONF.orientacion});
+      var W=pdf.internal.pageSize.getWidth(), H=pdf.internal.pageSize.getHeight();
+      var m=CONF.margen, aw=W-2*m, ah=H-2*m;
+      var cadena=Promise.resolve();
+      hojas.forEach(function(h,i){
+        cadena=cadena.then(function(){
+          msg.textContent="Preparando hoja "+(i+1)+" de "+hojas.length+"…";
+          return html2canvas(h,{scale:CONF.escala, backgroundColor:"#ffffff",
+            windowWidth:1600, scrollX:0, scrollY:-window.scrollY, logging:false,
+            onclone:function(d){ d.body.classList.add("exportando"); }});
+        }).then(function(c){
+          var w=aw, hh=c.height*aw/c.width;
+          if (hh>ah){ hh=ah; w=c.width*ah/c.height; }
+          if (i>0) pdf.addPage([8.5,14], CONF.orientacion);
+          pdf.addImage(c.toDataURL("image/jpeg",0.92),"JPEG", m+(aw-w)/2, m, w, hh);
+        });
+      });
+      return cadena.then(function(){ return pdf; });
+    }).then(function(pdf){
+      var nombre=CONF.nombre()+".pdf";
+      var blob=pdf.output("blob");
+      archivo=new File([blob], nombre, {type:"application/pdf"});
+      if (urlBlob) URL.revokeObjectURL(urlBlob);
+      urlBlob=URL.createObjectURL(blob); aVer.href=urlBlob;
+      mostrar("Listo: "+nombre, true);
+    }).catch(function(e){
+      mostrar("No se pudo crear el PDF. Revisa que tengas internet la primera vez y vuelve a intentarlo.", false, true);
+    }).then(function(){ btn.disabled=false;
+      vacios.forEach(function(x){ x[0].setAttribute("data-vacio", x[1]); }); });
+  }
+
+  bComp.addEventListener("click", function(){
+    if (!archivo) return;
+    if (navigator.canShare && navigator.canShare({files:[archivo]})){
+      navigator.share({files:[archivo], title:archivo.name}).catch(function(){});
+    } else {
+      var a=document.createElement("a"); a.href=urlBlob; a.download=archivo.name;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  });
+  bCerrar.addEventListener("click", function(){ capa.hidden=true; });
+  document.getElementById("descargarPdf").addEventListener("click", generar);
 })();
 </script>
 </body>
